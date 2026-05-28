@@ -21,7 +21,8 @@ namespace Valgorithms\DiscordChangelog;
 class Commit implements \JsonSerializable
 {
     public function __construct(protected array $data)
-    {}
+    {
+    }
 
     public function getSha(): string
     {

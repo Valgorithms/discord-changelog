@@ -94,7 +94,7 @@ if (! is_dir($lastCommitDir)) {
 }
 if (! file_exists($lastCommitFile)) {
     @file_put_contents($lastCommitFile, '');
-	@chmod($lastCommitFile, 0644);
+    @chmod($lastCommitFile, 0644);
 }
 
 $logger = new Logger('discord-changelog');
