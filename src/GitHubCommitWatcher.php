@@ -24,14 +24,10 @@ use Psr\Log\LoggerInterface;
  */
 class GitHubCommitWatcher
 {
+    public const VERSION = '1.1.0';
+    public const GITHUB_REPO = 'https://github.com/Valgorithms/discord-changelog';
     public const GITHUB_REPO_API_DEFAULT = 'https://api.github.com/repos/discord/discord-api-docs/commits';
     public const LAST_COMMIT_FILE_DEFAULT = 'last_commit.txt';
-    public const HTTP_GET_OPTIONS = [
-        'http' => [
-            'method' => 'GET',
-            'header' => 'User-Agent: DiscordCommitWatcher'.PHP_EOL,
-        ],
-    ];
 
     public function __construct(
         protected string $webhookUrl,
@@ -96,7 +92,14 @@ class GitHubCommitWatcher
      */
     public function fetchCommits(): array
     {
-        $context = stream_context_create(self::HTTP_GET_OPTIONS);
+        static $http_get_options = [
+            'http' => [
+                'method' => 'GET',
+                'header' => 'User-Agent: '.self::getUserAgent(),
+            ],
+        ];
+
+        $context = stream_context_create($http_get_options);
         $response = @file_get_contents($this->repoApiUrl, false, $context);
         if ($response === false) {
             $this->logger->error('Failed to fetch commits.');
@@ -176,11 +179,18 @@ class GitHubCommitWatcher
             ]],
         ];
 
+        $body = json_encode($payload);
+        if ($body === false) {
+            $this->logger->error('Failed to encode webhook payload.', ['sha' => $commit->getSha()]);
+
+            return false;
+        }
+
         $options = [
             'http' => [
                 'method' => 'POST',
-                'header' => 'Content-Type: application/json'.PHP_EOL.'User-Agent: DiscordCommitWatcher'.PHP_EOL,
-                'content' => json_encode($payload),
+                'header' => 'Content-Type: application/json'.PHP_EOL.'User-Agent: '.self::getUserAgent().PHP_EOL,
+                'content' => $body,
             ],
         ];
 
@@ -196,5 +206,17 @@ class GitHubCommitWatcher
         $this->logger->debug('Commit raw data', ['raw' => $commit->jsonSerialize()]);
 
         return true;
+    }
+
+    /**
+     * Returns the User-Agent of the HTTP client.
+     *
+     * @return string
+     *
+     * @since 1.1.0
+     */
+    public static function getUserAgent(): string
+    {
+        return 'DiscordCommitWatcher ('.self::GITHUB_REPO.', '.self::VERSION.')';
     }
 }
