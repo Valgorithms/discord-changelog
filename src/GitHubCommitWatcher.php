@@ -81,7 +81,6 @@ class GitHubCommitWatcher
             $sent += $this->sendWebhook($commit) ? 1 : 0;
         }
 
-        // Save latest SHA (most recent commit)
         file_put_contents($this->lastCommitFile, $commitsData[0]['sha']);
     }
 
@@ -148,7 +147,6 @@ class GitHubCommitWatcher
      */
     public function shouldSendCommit(Commit $commit): bool
     {
-        // Skip commits containing "Social SDK" (case-insensitive)
         $message = $commit->getMessage();
         if (stripos($message, 'Social SDK') !== false) {
             return false;
