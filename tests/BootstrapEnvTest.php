@@ -61,8 +61,7 @@ final class BootstrapEnvTest extends TestCase
         $result = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame(['os-webhook', 'os-repository', 'os-state.txt'], $result['configuration']);
         $this->assertSame('0', $result['value']);
-        // Windows removes empty variables from a child process environment.
-        $this->assertSame(PHP_OS_FAMILY === 'Windows' ? 'file' : '', $result['empty']);
+        $this->assertSame('', $result['empty']);
     }
 
     public function testQuotesEqualsCommentsAndMalformedLines(): void
@@ -154,7 +153,14 @@ final class BootstrapEnvTest extends TestCase
     private function runBootstrap(array $environment = [], array $env = [], array $server = []): array
     {
         $runner = $this->project.'/test-runner.php';
-        file_put_contents($runner, '<?php $_ENV = '.var_export($env, true).'; $_SERVER = '.var_export($server, true).'; require __DIR__."/run.php";');
+        $emptyVariables = '';
+        foreach ($environment as $name => $value) {
+            if ($value === '') {
+                // proc_open can omit empty values; set them inside the child.
+                $emptyVariables .= 'putenv('.var_export($name.'=', true).');';
+            }
+        }
+        file_put_contents($runner, '<?php '.$emptyVariables.' $_ENV = '.var_export($env, true).'; $_SERVER = '.var_export($server, true).'; require __DIR__."/run.php";');
         // Supply a fresh child environment; never inherit developer credentials.
         if (PHP_OS_FAMILY === 'Windows') {
             $environment['SystemRoot'] = getenv('SystemRoot');

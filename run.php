@@ -17,7 +17,7 @@ use Monolog\Logger;
 use Valgorithms\DiscordChangelog\GitHubCommitWatcher;
 
 // Find composer autoload path from several common locations. Avoid passing false to file_exists.
-static $autoload_candidates = [
+$autoload_candidates = [
     __DIR__.'/vendor/autoload.php',
     dirname(__DIR__).'/vendor/autoload.php',
     realpath(__DIR__.'/../vendor/autoload.php'),
@@ -69,7 +69,7 @@ function loadEnv(string $filePath): void
     }
 }
 
-static $env_candidates = [
+$env_candidates = [
     __DIR__.'/.env',
     getcwd().'/.env',
     dirname(getcwd()).'/.env',
