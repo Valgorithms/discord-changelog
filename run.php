@@ -17,7 +17,7 @@ use Monolog\Logger;
 use Valgorithms\DiscordChangelog\GitHubCommitWatcher;
 
 // Find composer autoload path from several common locations. Avoid passing false to file_exists.
-static $autoload_candidates = [
+$autoload_candidates = [
     __DIR__.'/vendor/autoload.php',
     dirname(__DIR__).'/vendor/autoload.php',
     realpath(__DIR__.'/../vendor/autoload.php'),
@@ -41,37 +41,49 @@ require $autoload_path;
 
 function loadEnv(string $filePath): void
 {
-    if (! file_exists($filePath)) {
+    if (! is_file($filePath)) {
         throw new \Exception('The .env file does not exist.');
     }
 
     $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    $trimmedLines = array_map('trim', $lines);
-    $filteredLines = array_filter($trimmedLines, fn ($line) => $line && ! str_starts_with($line, '#'));
+    if ($lines === false) {
+        throw new \RuntimeException('The .env file could not be read.');
+    }
 
-    array_walk($filteredLines, function ($line) {
-        [$name, $value] = array_map('trim', explode('=', $line, 2));
-        if (! array_key_exists($name, $_ENV)) {
-            putenv(sprintf('%s=%s', $name, $value));
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
+            continue;
         }
-    });
+        [$name, $value] = array_map('trim', explode('=', $line, 2));
+        if (! preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D', $name)) {
+            continue;
+        }
+        if (strlen($value) >= 2 && ($value[0] === '"' || $value[0] === "'") && $value[-1] === $value[0]) {
+            $value = substr($value, 1, -1);
+        }
+        // PHP often omits E from variables_order, so $_ENV alone is not enough.
+        if (! array_key_exists($name, $_ENV) && ! array_key_exists($name, $_SERVER) && getenv($name) === false) {
+            putenv("{$name}={$value}");
+        }
+    }
 }
 
-static $env_candidates = [
+$env_candidates = [
+    __DIR__.'/.env',
     getcwd().'/.env',
     dirname(getcwd()).'/.env',
     realpath(getcwd().'/../.env') ?: '',
     realpath(getcwd().'/../../.env') ?: '',
     realpath(dirname(getcwd()).'/../.env') ?: '',
     realpath(dirname(getcwd()).'/../../.env') ?: '',
-    __DIR__.'/.env',
-    dirname(__DIR__).'/ .env',
+    dirname(__DIR__).'/.env',
     dirname(__DIR__).'/../.env',
 ];
 
 $env_path = null;
 foreach ($env_candidates as $candidate) {
-    if ($candidate && is_string($candidate) && file_exists($candidate)) {
+    if ($candidate && is_string($candidate) && is_file($candidate)) {
         $env_path = $candidate;
         break;
     }
