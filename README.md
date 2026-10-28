@@ -25,12 +25,18 @@ php run.php
 
 Bootstrap helper
 
-- `run.php` is the project's bootstrap. It searches parent directories for a
-	`.env` and ensures `last_commit.txt` exists; run it with `php run.php`.
+- `run.php` is the project's bootstrap. It prefers `.env` beside the script,
+	then searches the working directory and its parents, then the script's parents.
+	It ensures `last_commit.txt` exists; run it with `php /path/to/run.php` from any directory.
 
 Configuration
 
 - Environment variables are defined in `.env` (see [.env.example](.env.example)).
+	Existing process, `$_ENV`, and `$_SERVER` values take precedence over the file.
+	The file is required even when configuration is supplied by the environment.
+	The loader accepts `KEY=value` lines, skips blank/comment/malformed lines, and
+	strips one matching pair of surrounding quotes. It preserves embedded `=` and
+	`#` characters; shell expansion, interpolation, and inline comments are not supported.
 	- `DISCORD_WEBHOOK` — your Discord webhook URL (don't leave as `CHANGEME`).
 	- `GITHUB_REPO_API` — GitHub commits API URL.
 	- `LAST_COMMIT_FILE` — file to store last seen commit SHA (defaults to `last_commit.txt`).
